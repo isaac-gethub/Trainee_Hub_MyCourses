@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TIB Systems LLC — My Courses</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy: #1F3864;
+    --teal: #1F7A8C;
+    --amber: #C65911;
+    --cream: #FBFAF6;
+    --lightgrey: #F2F2F2;
+    --red: #B02418;
+    --green: #2E7D32;
+    --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Calibri, Arial, sans-serif;
+    background: var(--lightgrey);
+    color: #222;
+    line-height: 1.5;
+  }
+
+  /* ---------- Sign-in screen ---------- */
+  #signin-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .signin-card {
+    background: var(--white); border-radius: 10px; padding: 36px 32px; max-width: 380px; width: 100%;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+  .signin-card .brand { font-weight: 700; color: var(--teal); font-size: 13px; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .signin-card h1 { color: var(--navy); font-size: 24px; margin: 0 0 6px; }
+  .signin-card .sub { color: #666; font-size: 14px; margin-bottom: 24px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 700; color: var(--navy); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .field input {
+    width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 15px; font-family: inherit;
+  }
+  .field input:focus { outline: none; border-color: var(--teal); }
+  #signin-btn {
+    width: 100%; background: var(--amber); color: #fff; border: none; padding: 12px;
+    border-radius: 6px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 6px;
+  }
+  #signin-btn:hover { background: #a84b0d; }
+  .error-msg { color: var(--red); font-size: 13px; margin-top: 10px; }
+  #forgot-password-link { display: block; text-align: center; margin-top: 14px; font-size: 13px; color: var(--teal); text-decoration: none; }
+
+  /* ---------- Hub screen ---------- */
+  #hub-screen { display: none; }
+  header.hub-header {
+    background: var(--navy); color: #fff; padding: 22px 32px; display: flex;
+    align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+  header.hub-header .brand-block .brand { font-weight: 700; font-size: 13px; letter-spacing: 0.5px; color: #9FC5E8; }
+  header.hub-header .brand-block h1 { margin: 4px 0 0; font-size: 22px; }
+  header.hub-header .who { text-align: right; font-size: 13px; color: #D9E4EF; }
+  header.hub-header button {
+    background: transparent; border: 1px solid #7C8CA8; color: #D9E4EF; padding: 7px 14px;
+    border-radius: 6px; font-size: 12px; cursor: pointer; margin-top: 6px;
+  }
+  header.hub-header button:hover { border-color: #fff; color: #fff; }
+
+  .hub-body { max-width: 1000px; margin: 0 auto; padding: 32px 24px 60px; }
+  .hub-intro { color: #555; font-size: 15px; margin-bottom: 26px; }
+
+  .course-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .course-card {
+    background: var(--white); border-radius: 10px; padding: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: flex; flex-direction: column;
+  }
+  .course-card .course-num { font-size: 11px; font-weight: 700; color: var(--amber); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .course-card h2 { font-size: 18px; color: var(--navy); margin: 0 0 8px; }
+  .course-card .desc { font-size: 13.5px; color: #555; margin-bottom: 16px; flex: 1; }
+
+  .progress-wrap { margin-bottom: 14px; }
+  .progress-label { font-size: 12px; color: #666; margin-bottom: 5px; display: flex; justify-content: space-between; }
+  .progress-bar-bg { background: var(--lightgrey); border-radius: 6px; height: 8px; overflow: hidden; }
+  .progress-bar-fill { background: var(--teal); height: 100%; border-radius: 6px; transition: width 0.4s ease; }
+  .progress-bar-fill.complete { background: var(--green); }
+
+  .not-enrolled-note { font-size: 12.5px; color: #888; font-style: italic; margin-bottom: 14px; }
+
+  .course-card .cta {
+    display: block; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none;
+    font-weight: 700; font-size: 13.5px;
+  }
+  .cta.primary { background: var(--amber); color: #fff; }
+  .cta.primary:hover { background: #a84b0d; }
+  .cta.secondary { background: var(--teal); color: #fff; }
+  .cta.secondary:hover { background: #175f6d; }
+  .cta.disabled { background: var(--lightgrey); color: #999; cursor: default; }
+
+  .library-card { grid-column: 1 / -1; background: linear-gradient(135deg, var(--navy), #16294a); color: #fff; }
+  .library-card h2 { color: #fff; }
+  .library-card .desc { color: #D9E4EF; }
+  .library-card .cta { background: var(--amber); color: #fff; display: inline-block; padding: 10px 22px; }
+
+  .electives-card { grid-column: 1 / -1; background: linear-gradient(135deg, #8B4A12, var(--amber)); color: #fff; }
+  .electives-card h2 { color: #fff; }
+  .electives-card .desc { color: #FBE6D4; }
+  .electives-card .course-num { color: #FBE6D4; }
+  .electives-card .cta { background: var(--navy); color: #fff; display: inline-block; padding: 10px 22px; }
+  .electives-card .cta:hover { background: #16294a; }
+  .electives-card .progress-bar-bg { background: rgba(255,255,255,0.25); }
+  .electives-card .progress-bar-fill { background: #fff; }
+  .electives-card .progress-bar-fill.complete { background: #C8E6C9; }
+  .electives-card .progress-label { color: #FBE6D4; }
+
+  .loading-note { text-align: center; color: #888; padding: 40px 0; }
+
+  @media (max-width: 600px) {
+    header.hub-header { padding: 18px 18px; flex-direction: column; align-items: flex-start; }
+    header.hub-header .who { text-align: left; }
+    .hub-body { padding: 22px 16px 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="signin-screen">
+  <div class="signin-card">
+    <div class="brand">TIB SYSTEMS LLC</div>
+    <h1>My Courses</h1>
+    <div class="sub">Sign in to access your enrolled courses.</div>
+    <div class="field">
+      <label for="email-input">Email</label>
+      <input type="email" id="email-input" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label for="password-input">Password</label>
+      <input type="password" id="password-input" placeholder="••••••••">
+    </div>
+    <button id="signin-btn">Sign In</button>
+    <div id="signin-error" class="error-msg" style="display:none;"></div>
+    <div id="forgot-password-msg" class="error-msg" style="display:none; color:var(--teal);"></div>
+    <a href="#" id="forgot-password-link">Forgot your password?</a>
+  </div>
+</div>
+
+<div id="hub-screen">
+  <header class="hub-header">
+    <div class="brand-block">
+      <div class="brand">TIB SYSTEMS LLC</div>
+      <h1>My Courses</h1>
+    </div>
+    <div class="who">
+      <div id="who-email"></div>
+      <button id="signout-btn">Sign Out</button>
+    </div>
+  </header>
+  <div class="hub-body">
+    <div class="hub-intro">Everything you're enrolled in, in one place. Click a course to jump straight back in.</div>
+    <div id="course-grid" class="course-grid">
+      <div class="loading-note">Loading your courses…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://blfgwysgekfqhcafofhe.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_ThLetpd4hj49fjce-kXoFA_v4ghwIqV";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const COURSES = [
+    {
+      num: "COURSE 1",
+      title: "SAP Controls Analyst — No-Access Track",
+      desc: "Judgment-first foundations across 64 real-world control scenarios. No live SAP access required.",
+      url: "https://controls-analyst-no-access.vercel.app",
+      enrollTable: "noaccess_enrollments",
+      progressTable: "noaccess_progress",
+      progressKey: "cvu_id",
+      total: 64,
+    },
+    {
+      num: "COURSE 2",
+      title: "SAP Controls Consultant — Evidence Capture Training",
+      desc: "Hands-on evidence production in a live SAP sandbox across 93 sessions.",
+      url: "https://no-access-sap-screen-capture.vercel.app",
+      enrollTable: "handson_enrollments",
+      progressTable: "handson_progress",
+      progressKey: "session_id",
+      total: 93,
+    },
+    {
+      num: "COURSE 3",
+      title: "SAP Controls Mastery Console",
+      desc: "Full SOX 404 methodology, live SAP GRC practicum, and career-readiness training.",
+      url: "https://tib-sap-controls-tutor.vercel.app",
+      enrollTable: "selfstudy_enrollments",
+      progressTable: "selfstudy_progress",
+      progressKey: "day_number",
+      total: 85, // overridden per-user below if they're on the Fast Track (74)
+      trackAware: true,
+    },
+  ];
+
+  // "Beyond the Core" — optional electives hub (separate deployment, own progress table)
+  const ELECTIVES_URL = "https://beyond-the-core-electives-landing.vercel.app/";
+  const ELECTIVES_COURSES = {
+    pc: { label: "GRC Process Control Fundamentals", total: 6 },
+    eam: { label: "Firefighter ID: Creation & Assignment", total: 4 },
+    riskregister: { label: "Risk Register & Policy Lifecycle", total: 5 },
+    primer: { label: "Career Primer (MSMP/Vendor Risk)", total: 1 },
+  };
+  const ELECTIVES_TOTAL = Object.values(ELECTIVES_COURSES).reduce((s, c) => s + c.total, 0); // 16
+
+  document.getElementById('signin-btn').addEventListener('click', signIn);
+  document.getElementById('password-input').addEventListener('keydown', e => { if (e.key === 'Enter') signIn(); });
+
+  document.getElementById('forgot-password-link').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email-input').value.trim();
+    const msgEl = document.getElementById('forgot-password-msg');
+    const errEl = document.getElementById('signin-error');
+    errEl.style.display = 'none';
+    if (!email) {
+      msgEl.style.color = 'var(--red)';
+      msgEl.textContent = 'Enter your email above first, then click "Forgot your password?" again.';
+      msgEl.style.display = 'block';
+      return;
+    }
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    msgEl.style.color = error ? 'var(--red)' : 'var(--teal)';
+    msgEl.textContent = error ? error.message : 'Check your email for a password reset link.';
+    msgEl.style.display = 'block';
+  });
+
+  async function signIn() {
+    const email = document.getElementById('email-input').value.trim();
+    const password = document.getElementById('password-input').value;
+    const errEl = document.getElementById('signin-error');
+    errEl.style.display = 'none';
+    if (!email || !password) {
+      errEl.textContent = 'Enter both your email and password.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const btn = document.getElementById('signin-btn');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    btn.disabled = false; btn.textContent = 'Sign In';
+    if (error) {
+      errEl.textContent = error.message;
+      errEl.style.display = 'block';
+      return;
+    }
+    enterHub(data.user);
+  }
+
+  document.getElementById('signout-btn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    document.getElementById('hub-screen').style.display = 'none';
+    document.getElementById('signin-screen').style.display = 'flex';
+    document.getElementById('email-input').value = '';
+    document.getElementById('password-input').value = '';
+  });
+
+  async function enterHub(user) {
+    document.getElementById('signin-screen').style.display = 'none';
+    document.getElementById('hub-screen').style.display = 'block';
+    document.getElementById('who-email').textContent = user.email;
+    await renderCourses(user.email);
+  }
+
+  async function renderCourses(email) {
+    const grid = document.getElementById('course-grid');
+    grid.innerHTML = '<div class="loading-note">Loading your courses…</div>';
+
+    const cards = [];
+    for (const course of COURSES) {
+      let enrolled = false;
+      let total = course.total;
+      try {
+        const { data: enrollRows } = await sb.from(course.enrollTable).select('*').eq('email', email).limit(1);
+        enrolled = !!(enrollRows && enrollRows.length);
+        if (enrolled && course.trackAware && enrollRows[0].preferred_track === 'fast') {
+          total = 74;
+        }
+      } catch (e) { /* table/policy issue — treat as not enrolled, degrade gracefully */ }
+
+      let completedCount = 0;
+      if (enrolled) {
+        try {
+          const { data: progRows } = await sb.from(course.progressTable).select(course.progressKey).eq('email', email);
+          completedCount = progRows ? new Set(progRows.map(r => r[course.progressKey])).size : 0;
+        } catch (e) { /* no progress yet */ }
+      }
+      cards.push({ course, enrolled, completedCount, total });
+    }
+
+    grid.innerHTML = '';
+    cards.forEach(({ course, enrolled, completedCount, total }) => {
+      const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+      const div = document.createElement('div');
+      div.className = 'course-card';
+      if (enrolled) {
+        const barClass = pct >= 100 ? 'progress-bar-fill complete' : 'progress-bar-fill';
+        const ctaLabel = completedCount > 0 ? '→ Continue' : '→ Start';
+        div.innerHTML = `
+          <div class="course-num">${course.num}</div>
+          <h2>${escapeHtml(course.title)}</h2>
+          <div class="desc">${escapeHtml(course.desc)}</div>
+          <div class="progress-wrap">
+            <div class="progress-label"><span>${completedCount} of ${total} complete</span><span>${pct}%</span></div>
+            <div class="progress-bar-bg"><div class="${barClass}" style="width:${pct}%;"></div></div>
+          </div>
+          <a class="cta primary" href="${course.url}" target="_blank" rel="noopener">${ctaLabel}</a>`;
+      } else {
+        div.innerHTML = `
+          <div class="course-num">${course.num}</div>
+          <h2>${escapeHtml(course.title)}</h2>
+          <div class="desc">${escapeHtml(course.desc)}</div>
+          <div class="not-enrolled-note">Not part of your current enrollment.</div>
+          <span class="cta disabled">Not Enrolled</span>`;
+      }
+      grid.appendChild(div);
+    });
+
+    // Beyond the Core — optional electives (own progress table, no enrollment gate)
+    let electivesCompleted = 0;
+    try {
+      const { data: elRows } = await sb.from('electives_progress').select('course_id, module_id').eq('email', email);
+      if (elRows) electivesCompleted = new Set(elRows.map(r => `${r.course_id}:${r.module_id}`)).size;
+    } catch (e) { /* table/policy issue — degrade gracefully, show card with no progress */ }
+
+    const elPct = ELECTIVES_TOTAL > 0 ? Math.round((electivesCompleted / ELECTIVES_TOTAL) * 100) : 0;
+    const elBarClass = elPct >= 100 ? 'progress-bar-fill complete' : 'progress-bar-fill';
+    const elCtaLabel = electivesCompleted > 0 ? '→ Continue Electives' : '→ Explore Electives';
+    const elDiv = document.createElement('div');
+    elDiv.className = 'course-card electives-card';
+    elDiv.innerHTML = `
+      <div class="course-num">OPTIONAL · BEYOND THE CORE</div>
+      <h2>4 Electives — Built from Real Job-Market Gaps</h2>
+      <div class="desc">GRC Process Control, Firefighter ID administration, Risk Register &amp; Policy Lifecycle, and a career primer on MSMP/Vendor Risk — each one grounded in a specific gap found when TIB's curriculum was checked against real SAP GRC job postings. Not required to complete your core enrollment.</div>
+      ${electivesCompleted > 0 ? `
+      <div class="progress-wrap">
+        <div class="progress-label"><span>${electivesCompleted} of ${ELECTIVES_TOTAL} modules complete</span><span>${elPct}%</span></div>
+        <div class="progress-bar-bg"><div class="${elBarClass}" style="width:${elPct}%;"></div></div>
+      </div>` : ''}
+      <a class="cta" href="${ELECTIVES_URL}" target="_blank" rel="noopener">${elCtaLabel}</a>`;
+    grid.appendChild(elDiv);
+
+    // Training Library — always shown, no auth/progress (public resource)
+    const libDiv = document.createElement('div');
+    libDiv.className = 'course-card library-card';
+    libDiv.innerHTML = `
+      <div class="course-num" style="color:#9FC5E8;">BONUS RESOURCE</div>
+      <h2>TIB Training Library</h2>
+      <div class="desc">Resume guidance, interview preparation, a job-search readiness tracker, and reference material — included free with any enrollment.</div>
+      <a class="cta" href="https://tib-training-library.vercel.app" target="_blank" rel="noopener">Open Library →</a>`;
+    grid.appendChild(libDiv);
+  }
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+
+  // Restore session on page load/refresh
+  (async () => {
+    const { data } = await sb.auth.getSession();
+    if (data && data.session && data.session.user) {
+      enterHub(data.session.user);
+    }
+  })();
+</script>
+
+</body>
+</html>
